@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "SecondAttempt.generated.h"
+#include "Tasks/Task.h"
 
 UCLASS()
 class MINE_API ASecondAttempt : public APawn
@@ -42,6 +43,8 @@ protected:
 	FVector ogRelCamTransLoc;
 
 	FQuat ogRelCamTransRot;
+
+	TGraphTask<int> b;
 
 public:	
 	// Called every frame
