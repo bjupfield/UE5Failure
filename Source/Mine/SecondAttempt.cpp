@@ -39,6 +39,8 @@ ASecondAttempt::ASecondAttempt()//not on create function, instead something like
 	rotateAdjust = 50.0f;
 	// LowLevelRaycast;
 
+	bVector = {-1, -1};
+
 
 	//bresenham assignment
 
@@ -475,18 +477,35 @@ void ASecondAttempt::mouseDownTrack(const struct FInputActionValue& actionValue)
 										// 	mipColor[point + i] = 255;
 											
 										// }
-										for(auto& circlePoint : bresenhamCircle)
-										{
-											int pointY = realY + circlePoint.Y;
-											int pointX = realX + circlePoint.X;
-											if(pointX >= 0 && pointY >= 0 && pointY <= texture_Height && pointX <= texture_Width){
-												UE_LOG(MineLog, Warning, TEXT("LOTS OF POINTS YAH RIGHT GIT: X: %d || Y: %d"), pointX, pointY);
-												int point = ((pointY * texture_Width) + pointX) * 4;//multiply twice because its stored in a single array where every layer is + x width for y increases
-												mipColor[point + 1] = 255;//one might mean green
-											}
+										// for(auto& circlePoint : bresenhamCircle)
+										// {
+										// 	int pointY = realY + circlePoint.Y;
+										// 	int pointX = realX + circlePoint.X;
+										// 	if(pointX >= 0 && pointY >= 0 && pointY <= texture_Height && pointX <= texture_Width){
+										// 		UE_LOG(MineLog, Warning, TEXT("LOTS OF POINTS YAH RIGHT GIT: X: %d || Y: %d"), pointX, pointY);
+										// 		int point = ((pointY * texture_Width) + pointX) * 4;//multiply twice because its stored in a single array where every layer is + x width for y increases
+										// 		mipColor[point + 1] = 255;//one might mean green
+										// 	}
 											
+										// }
+										FIntVector2 a = {realX, realY}; 
+
+										if(bVector.X == -1)
+										{
+											bVector = a;
 										}
 
+										ASecondAttempt::textureLineDraw(mipColor, a, bVector, a);
+										
+
+
+										UE_LOG(MineLog, Warning, TEXT("BEFORE BVECTOR ASSIGNMENT"));
+										bVector = a;
+										UE_LOG(MineLog, Warning, TEXT("AFTER BVECTOR ASSIGNMENT"));
+										// previousPreviousPointLolLazyForNow.X = previousPointLolLazyForNow.X;
+										// previousPreviousPointLolLazyForNow.Y = previousPointLolLazyForNow.Y;
+										// previousPointLolLazyForNow.X = realX;
+										// previousPointLolLazyForNow.Y = realY;
 
 										void* TextureData = castedTexture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);// this allows me to write to the map
 										FMemory::Memcpy(TextureData, mipColor, dataSize);// this copie
@@ -608,22 +627,32 @@ bool pos, FVector startPos, FVector endPos
 	}
 	return false;
 }
-void textureLineDraw(uint8 mipMap[], FIntVector2 *pointA, FIntVector2 *pointB, FIntVector2 *pointC)
+void ASecondAttempt::textureLineDraw(uint8 mipMap[], FIntVector2 pointA, FIntVector2 pointB, FIntVector2 pointC)
 {
-    
-    if(pointB != nullptr)
+	UE_LOG(MineLog, Warning, TEXT("START OF FUNCTION"));
+    TArray<FIntVector2> linePoints;
+    if(pointB != pointA)
     {
-        if(pointC != nullptr)
+		int x = pointB.X;
+		int y = pointB.Y;
+		
+		//starting point, which obviously starts at the previous point
+
+        if(pointC != pointB)
         {
 
-            if(pointA->X == pointB->X && pointA->Y == pointB->Y)
+
+            if(pointA.X == pointB.X && pointA.Y == pointB.Y)//we will remove this and just check before hand
             {
                 //the point is the same as the previous point, do nothing
 
             }
-            if(pointB->X == pointC->X || point->X == pointA->X)
+            if(pointB.X == pointA.X)//line goes straight up, we are already checking to make sure the point actually moves
             {
                 //slope is infinite or point has not moved
+				for(y; y < pointA.Y; y++){
+					linePoints.Add({x, y});
+				}//just adds points vertically untill y1 == y2, so its just a straight line
 
             }
             else{
@@ -637,13 +666,13 @@ void textureLineDraw(uint8 mipMap[], FIntVector2 *pointA, FIntVector2 *pointB, F
                 // bslope = 3m(bx^2) + 2d(bx) + v
                 // aslope = 3m(ax^2) + 2d(ax) + v
 
-                float ax = pointA->X;
-                float bx = pointB->X;
-                float ay = pointA->Y;
-                float by = pointB->Y;
+                float ax = pointA.X;
+                float bx = pointB.X;
+                float ay = pointA.Y;
+                float by = pointB.Y;
 
                 float slopeA = (float)(ay - by) / (float)(ax - bx);
-                float slopeb = (float)(by - pointC->Y) / (float)(bx - pointC->X);
+                float slopeb = (bx - pointC.X) != 0 ? (float)(by - pointC.Y) / (float)(bx - pointC.X) : 20;
 
 				//this checks if slope b is above 10/3, which if it is it is set to 10/3 since that is the highest number that looks nice
                 if(slopeb > (10/3))slopeb = 10/3;
@@ -663,18 +692,15 @@ void textureLineDraw(uint8 mipMap[], FIntVector2 *pointA, FIntVector2 *pointB, F
                 // f(x) = m1(x^3) + d1(x^2) + v1(x) + z1
 
 				//for now we will use fvector as the buffer but we can change this later
-				TArray<int[2]> linePoints;
-				int x = pointB->X;
-				int y = pointB->Y;
 				int fakeX = x;
 				int yTarget;
 				//retrieve starting point
-				int leftOrRight = pointB->X < pointA->X ? 1 : -1;
+				int leftOrRight = pointB.X < pointA.X ? 1 : -1;
 				//check if point is going left or right
-				FIntVector2 textVect;
-				if(leftOrRight == 1)
+				// FIntVector2 textVect;
+				if(pointB.X < pointA.X)
 				{
-					while(x < pointA->X){
+					while(x < pointA.X){
 						if(fakeX == x)
 						{//to prevent the yTarget calculation as much as possible store fakeX and yTarget in case need for double increase in Y
 							++fakeX;
@@ -706,9 +732,9 @@ void textureLineDraw(uint8 mipMap[], FIntVector2 *pointA, FIntVector2 *pointB, F
 						linePoints.Add({x, y});
 					}
 				}
-				else
+				else if(pointB.X > pointA.X)
 				{
-					while(x > pointA->X){//no fancy nonsense allowed because cant include equal to
+					while(x > pointA.X){//no fancy nonsense allowed because cant include equal to
 						if(fakeX == x)
 						{//to prevent the yTarget calculation as much as possible store fakeX and yTarget in case need for double increase in Y
 							--fakeX;
@@ -747,15 +773,141 @@ void textureLineDraw(uint8 mipMap[], FIntVector2 *pointA, FIntVector2 *pointB, F
         }
         else
         {//just straight line since we dont have a slope for the first point because it is the 2nd point on the draw
-
-        }
+			float slope = (float)(pointA.Y - pointB.Y) / (float)(pointA.X - pointB.X);
+        
+			float b = (slope * (-pointA.X)) + pointA.Y; 
+			int yMult = b > 0 ? 1: -1;
+			if(pointB.X < pointA.X)//line is going to right...
+			{
+				if(slope > 1 || slope < -1){//make it y based
+					float slopeY = 1 / slope;
+					float bY = -b / slopeY;
+					// point x = (slopeY * y) + bY
+					while(y < pointA.Y){
+						y += yMult;
+						int xPointDiff = abs(((slopeY * y + bY) - x) * 2);
+						if(xPointDiff > 1){
+							x++;
+						}
+						linePoints.Add({x, y});
+					}
+				}
+				else{//it is x based
+					while(x < pointA.X){
+						x++;
+						int yPointDiff = abs(((slope * x) + b) * 2);
+						if(yPointDiff > 1){
+							y += yMult;
+						}
+						linePoints.Add({x,y});
+					}
+				}
+			}
+			else{//line going to left there is something wrong going on here, but I dont see how the y point isnt also messed up confuse much
+				if(slope > 1 || slope < -1){//make it y based
+					while(y < pointA.Y){
+						float slopeY = 1 / slope;
+						float bY = -b / slopeY;
+						y += yMult;
+						int xPointDiff = abs(((slopeY * y + bY) - x) * 2);
+						if(xPointDiff > 1){
+							x--;
+						}
+						linePoints.Add({x, y});
+					}
+				}
+				else{//it is x based
+					while(x < pointA.X){
+						x--;
+						int yPointDiff = abs(((slope * x) + b) * 2);
+						if(yPointDiff > 1){
+							y += yMult;
+						}
+						linePoints.Add({x,y});
+					}
+				}
+			}
+		}
     }
     else
     {//this is the first point, just draw a circle
-
+		linePoints.Add({pointA.X, pointA.Y});
     }
-    *pointB = *pointA;
-    *pointC = *pointB;
+	UE_LOG(MineLog, Warning, TEXT("Occurs Before assignment"));
+	for(auto& circlePoint : bresenhamCircle){
+		// UE_LOG(MineLog, Log, TEXT("ARE WE HERE YET LINE NUM IS %d ||||| 1"), (linePoints.Num()));
+		int pointY = linePoints[0].Y + circlePoint.Y;
+		int pointX = linePoints[0].X + circlePoint.X;
+		if(pointX >= 0 && pointY >= 0 && pointY <= texture_Height && pointX <= texture_Width){
+			int point = ((pointY * texture_Width) + pointX) * 4;//multiply by width because its stored in a single array where every layer is + x width for y increases
+			mipMap[point + 1] = 255;//one might mean green
+		}
+	}
+	UE_LOG(MineLog, Warning, TEXT("This occurs before inner assignment"));
+	// for(int i = 1; i < linePoints.Num() - 1; i++){
+	// 	UE_LOG(MineLog, Log, TEXT("ARE WE HERE YET LINE NUM IS %d || POS IS %d ||||| 2"), (linePoints.Num()), i);
+	// 	int cenPointX = linePoints[i].X;
+	// 	int cenPointY = linePoints[i].Y;
+	// 	UE_LOG(MineLog, Log, TEXT("WE ARE IN THE ASSIGNMENT TO MIPMAP || X: %d || Y: %d"), cenPointX, cenPointY);
+	// 	if(cenPointX >= 0 && cenPointY >= 0 && cenPointY <= texture_Height && cenPointX <= texture_Width)
+	// 	{
+	// 		int ogPoint = ((cenPointY * texture_Width) + cenPointX) * 4;
+	// 		mipMap[ogPoint + 1] = 255;
+		
+	// 		//including these inside center point, because if center point is off the edge of the map there is no need to chec paint the other points... maybe
+	// 		if(cenPointY != linePoints[i - 1].Y)
+	// 		{
+	// 			for(int j = cenPointY - circle_Radius; j < cenPointY; ++j)//add y points below center point
+	// 			{
+	// 				if(cenPointX >= 0 && j >= 0 && j <= texture_Height && cenPointX <= texture_Width){
+	// 					int point = ((j * texture_Width) + cenPointX) * 4;
+	// 					mipMap[point + 1] = 255;
+	// 				}
+	// 			}
+	// 			for(int j = cenPointY + circle_Radius; j > cenPointY; --j)//add y points above center point
+	// 			{
+	// 				if(cenPointX >= 0 && j >= 0 && j <= texture_Height && cenPointX <= texture_Width){
+	// 					int point = ((j * texture_Width) + cenPointX) * 4;
+	// 					mipMap[point + 1] = 255;
+	// 				}
+	// 			}
+	// 		}
+	// 		if(cenPointX != linePoints[i - 1].X)
+	// 		{
+	// 			for(int j = cenPointX - circle_Radius; j < cenPointX; ++j)//add x to the left of center point
+	// 			{
+	// 				if(j >= 0 && cenPointY >= 0 && cenPointY <= texture_Height && j <= texture_Width){
+	// 					int point = ((cenPointY * texture_Width) + j) * 4;
+	// 					mipMap[point + 1] = 255;
+	// 				}
+	// 			}
+	// 			for(int j = cenPointX + circle_Radius; j > cenPointX; --j)//add x to the right of center point
+	// 			{
+	// 				if(j >= 0 && cenPointY >= 0 && cenPointY <= texture_Height && j <= texture_Width){
+	// 					int point = ((cenPointY * texture_Width) + j) * 4;
+	// 					mipMap[point + 1] = 255;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+	UE_LOG(MineLog, Warning, TEXT("This Occurs before final point assignment"));
+	// if(linePoints.Num() > 1)
+	// {
+	// 	UE_LOG(MineLog, Log, TEXT("ARE WE HERE YET LINE NUM IS %d ||||| 3"), (linePoints.Num()));
+	// 	for(auto& circlePoint : bresenhamCircle){
+	// 		int pointY = linePoints[linePoints.Num() - 1].Y + circlePoint.Y;
+	// 		int pointX = linePoints[linePoints.Num() - 1].X + circlePoint.X;
+	// 		if(pointX >= 0 && pointY >= 0 && pointY <= texture_Height && pointX <= texture_Width){
+	// 			int point = ((pointY * texture_Width) + pointX) * 4;//multiply by width because its stored in a single array where every layer is + x width for y increases
+	// 			mipMap[point + 1] = 255;//one might mean green
+	// 		}
+	// 	}
+	// }
+	UE_LOG(MineLog, Warning, TEXT("This Occurs AT THE END OF THE FUNCTION"));
+	return;
+    // *pointB = *pointA;
+    // *pointC = *pointB;
     // FTask task;
     
 }

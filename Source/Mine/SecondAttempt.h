@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "SecondAttempt.generated.h"
-#include "Tasks/Task.h"
 
 UCLASS()
 class MINE_API ASecondAttempt : public APawn
@@ -13,7 +12,9 @@ class MINE_API ASecondAttempt : public APawn
 	GENERATED_BODY()
 private:
 
-	TArray<FIntVector2> bresenhamCircle;
+	TArray<FIntVector2>bresenhamCircle;
+	FIntVector2 bVector;
+	
 
 public:
 	// Sets default values for this pawn's properties
@@ -43,8 +44,6 @@ protected:
 	FVector ogRelCamTransLoc;
 
 	FQuat ogRelCamTransRot;
-
-	TGraphTask<int> b;
 
 public:	
 	// Called every frame
@@ -87,4 +86,6 @@ public:
 	void changeMapAndCamera(const struct FInputActionValue& actionValue);
 
 	void mouseDownTrack(const struct FInputActionValue& actionValue);
+
+	void textureLineDraw(uint8 mipMap[], FIntVector2 pointA, FIntVector2 pointB, FIntVector2 pointC);
 };
